@@ -1,6 +1,6 @@
 import { contextBridge } from "electron";
 
-function parseArgv(key: string) {
+export function parseArgv(key: string) {
     for (const arg of process.argv) {
         if (arg.indexOf(`--${key}=`) === 0) {
             return JSON.parse(arg.split('=')[1]);
