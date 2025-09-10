@@ -1,50 +1,27 @@
 export interface Config {
-
-    udpPort: number,            //UDP广播端口
-    websocketPort: number,      //WebSocket备用端口
-    broadcastInterval: number,  //广播间隔(ms)
-
-    
-    theme: Theme,               //主题
-    language: string            //语言
+    theme: Theme;               //主题
+    language: Language;            //语言
+    version: string;
+    downSavePath: string;
 }
 
 
 export type Theme = "light" | "dark" | "system"
+export type Language = "zh"  | "en"
 
 
-export const DefaultConfig: Config = {
-    udpPort: 8080,
-    websocketPort: 8081,
-    broadcastInterval: 500,
-    theme: 'light',
-    language: 'en'
+
+export type DownloadProtocol = 'http' | 'https' | 'ftp' | 'bt' | 'magnet';
+
+export interface DownloadTask {
+  id: string;
+  url: string;
+  protocol: DownloadProtocol;
+  status: 'waiting' | 'downloading' | 'paused' | 'completed' | 'error';
+  progress: number; // 0-100
+  speed: number;    // bytes/sec
+  fileName: string;
+  error?: string;
+  startByte?: number; // 用于断点续传
+  totalSize?: number; // 文件总大小
 }
-
-
-export interface DeviceInfo {
-    deviceId: string,
-    deviceNmae: string,
-    ip: string,
-    port: number,
-    inviteCode: number,
-    lastSeen: number
-}
-
-export type UDPMessage = {
-    type: 'DISCOVERY',
-    deviceId: string,
-}   //设备发现
-    | {
-        type: 'RESPONSE',
-        deviceId: string,
-        name: string,
-        inviteCode: string,
-        port: number,
-    }  //响应
-    | {
-        type: 'INVITE',
-        formDeviceId: string,
-        toDeviceId: string,
-        code: string
-    } //邀请

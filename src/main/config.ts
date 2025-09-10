@@ -1,8 +1,15 @@
 import {existsSync,readFileSync,writeFileSync} from 'fs'
 
-import { DefaultConfig, type Config } from '../types'
+import {  Config } from '../types'
 import { app } from 'electron'
 import { join } from 'path'
+
+ const DefaultConfig: Config = {
+    version: '1.0.0',  
+    theme: 'light',
+    language:'en',
+    downSavePath: app.getPath('downloads'),
+}
 
 class ConfigManager {
   private configPath:string =join(app.getPath('userData'), 'config.json');

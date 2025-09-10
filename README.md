@@ -1,5 +1,22 @@
-# Vue 3 + TypeScript + Vite
+# HTTP暂停和继续下载实现文档
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+## 功能概述
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+我已经为PeerShare项目实现了完整的HTTP下载暂停和继续功能，支持断点续传。这个实现包括以下特性：
+
+### 主要功能
+
+1. **断点续传支持**
+   - 使用HTTP Range请求头实现断点续传
+   - 自动检测服务器是否支持Range请求
+   - 如果服务器不支持，自动重新下载
+
+2. **智能文件管理**
+   - 使用临时文件（.tmp后缀）进行下载
+   - 下载完成后自动重命名为最终文件
+   - 暂停时保留临时文件用于续传
+
+3. **进度和速度计算**
+   - 实时计算下载进度（0-100%）
+   - 计算下载速度（bytes/sec）
+   - 遵循项目规范，每100ms最多更新一次
