@@ -10,7 +10,7 @@
         </h2>
         <p class="section-subtitle">管理您的所有下载任务</p>
       </div>
-      
+
       <div class="header-actions">
         <button class="btn-primary" @click="showAddDialog = true">
           <span class="btn-icon">➕</span>
@@ -32,7 +32,7 @@
           <div class="stat-label">下载中</div>
         </div>
       </div>
-      
+
       <div class="stat-card">
         <div class="stat-icon completed">✓</div>
         <div class="stat-info">
@@ -40,7 +40,7 @@
           <div class="stat-label">已完成</div>
         </div>
       </div>
-      
+
       <div class="stat-card">
         <div class="stat-icon waiting">⏸</div>
         <div class="stat-info">
@@ -48,7 +48,15 @@
           <div class="stat-label">等待中</div>
         </div>
       </div>
-      
+
+      <div class="stat-card">
+        <div class="stat-icon paused">⏸</div>
+        <div class="stat-info">
+          <div class="stat-number">{{ pausedCount }}</div>
+          <div class="stat-label">已暂停</div>
+        </div>
+      </div>
+
       <div class="stat-card" v-if="errorCount > 0">
         <div class="stat-icon error">⚠</div>
         <div class="stat-info">
@@ -79,17 +87,12 @@
 
       <!-- 任务列表 -->
       <div v-if="tasks.length" class="task-list">
-        <div 
-          v-for="task in tasks" 
-          :key="task.id" 
-          class="task-item"
-          :class="{
-            'task-downloading': task.status === 'downloading',
-            'task-completed': task.status === 'completed',
-            'task-error': task.status === 'error',
-            'task-paused': task.status === 'paused'
-          }"
-        >
+        <div v-for="task in tasks" :key="task.id" class="task-item" :class="{
+          'task-downloading': task.status === 'downloading',
+          'task-completed': task.status === 'completed',
+          'task-error': task.status === 'error',
+          'task-paused': task.status === 'paused'
+        }">
           <!-- 任务状态图标 -->
           <div class="task-status-icon">
             <span v-if="task.status === 'downloading'" class="status-icon downloading">📫</span>
@@ -109,11 +112,11 @@
                 {{ task.protocol.toUpperCase() }}
               </div>
             </div>
-            
+
             <div class="task-url" :title="task.url">
               {{ task.url }}
             </div>
-            
+
             <!-- 进度信息 -->
             <div class="task-progress-section" v-if="task.status !== 'waiting'">
               <div class="progress-info">
@@ -126,7 +129,7 @@
                 <div class="progress-bar" :style="{ width: task.progress + '%' }"></div>
               </div>
             </div>
-            
+
             <!-- 错误信息 -->
             <div v-if="task.status === 'error' && task.error" class="task-error">
               <span class="error-icon">⚠</span>
@@ -136,29 +139,17 @@
 
           <!-- 任务操作 -->
           <div class="task-actions">
-            <button 
-              v-if="task.status === 'downloading'"
-              class="btn-action btn-pause"
-              @click="pauseTask(task.id)"
-              title="暂停"
-            >
+            <button v-if="task.status === 'downloading'" class="btn-action btn-pause" @click="pauseTask(task.id)"
+              title="暂停">
               ⏸
             </button>
-            
-            <button 
-              v-if="task.status === 'paused' || task.status === 'error'"
-              class="btn-action btn-resume"
-              @click="resumeTask(task.id)"
-              title="继续"
-            >
+
+            <button v-if="task.status === 'paused' || task.status === 'error'" class="btn-action btn-resume"
+              @click="resumeTask(task.id)" title="继续">
               ▶
             </button>
-            
-            <button 
-              class="btn-action btn-remove"
-              @click="removeTask(task.id)"
-              title="删除"
-            >
+
+            <button class="btn-action btn-remove" @click="removeTask(task.id)" title="删除">
               🗑
             </button>
           </div>
@@ -167,19 +158,17 @@
     </div>
 
     <!-- 添加任务对话框 -->
-    <AddTaskDialog 
-      v-if="showAddDialog" 
-      @add="addTask" 
-      @close="showAddDialog = false"
-    />
+    <AddTaskDialog v-if="showAddDialog" @add="addTask" @close="showAddDialog = false" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, Ref, computed } from 'vue'
 import { DownloadTask } from '../../types'
+import { useI18n } from 'vue-i18n'
 import AddTaskDialog from './AddTaskDialog.vue'
 
+const { t } = useI18n()
 const tasks: Ref<DownloadTask[]> = ref([])
 const showAddDialog = ref(false)
 const isLoading = ref(false)
@@ -191,28 +180,33 @@ const currentTheme = ref<'light' | 'dark'>('dark')
 const initTheme = () => {
   const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | null
   const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-  
+
   currentTheme.value = savedTheme || systemTheme
   document.documentElement.setAttribute('data-theme', currentTheme.value)
 }
 
 
 // 计算属性
-const downloadingCount = computed(() => 
+const downloadingCount = computed(() =>
   tasks.value.filter(task => task.status === 'downloading').length
 )
 
-const completedCount = computed(() => 
+const completedCount = computed(() =>
   tasks.value.filter(task => task.status === 'completed').length
 )
 
-const waitingCount = computed(() => 
+const waitingCount = computed(() =>
   tasks.value.filter(task => task.status === 'waiting').length
 )
 
-const errorCount = computed(() => 
+const pausedCount = computed(() =>
+  tasks.value.filter(task => task.status === 'paused').length
+)
+
+const errorCount = computed(() =>
   tasks.value.filter(task => task.status === 'error').length
 )
+
 
 // 下载更新监听
 window.electronAPI?.onDownloadUpdate?.((newTasks: any) => {
@@ -223,7 +217,7 @@ window.electronAPI?.onDownloadUpdate?.((newTasks: any) => {
 async function fetchTasks() {
   isLoading.value = true
   try {
-    const result = await window.electronAPI?.downloadList?.()
+    const result = await window.electronAPI.downloadList()
     if (result) {
       tasks.value = result
     }
@@ -236,7 +230,7 @@ async function fetchTasks() {
 
 // 添加任务
 function addTask({ url, protocol }: { url: string, protocol: string }) {
-  window.electronAPI?.downloadAdd?.(url, protocol)
+  window.electronAPI.downloadAdd(url, protocol)
   showAddDialog.value = false
 }
 
@@ -247,13 +241,13 @@ function pauseTask(taskId: string) {
 
 // 继续任务
 function resumeTask(taskId: string) {
-  window.electronAPI?.downloadResume?.(taskId)
+  window.electronAPI.downloadResume(taskId)
 }
 
 // 删除任务
 function removeTask(taskId: string) {
-  if (confirm('确定要删除这个任务吗？')) {
-    window.electronAPI?.downloadRemove?.(taskId)
+  if (confirm(t('download.delete.confirm'))) {
+    window.electronAPI.downloadRemove(taskId)
   }
 }
 
@@ -500,8 +494,13 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* 任务列表 */
@@ -700,12 +699,10 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.3),
+      transparent);
   animation: shimmer-progress 2s infinite;
 }
 
@@ -713,6 +710,7 @@ onMounted(() => {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -789,36 +787,36 @@ onMounted(() => {
     align-items: stretch;
     gap: var(--spacing-md);
   }
-  
+
   .header-actions {
     justify-content: stretch;
   }
-  
+
   .header-actions button {
     flex: 1;
   }
-  
+
   .stats-section {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .task-item {
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-sm);
   }
-  
+
   .task-actions {
     justify-content: center;
     margin-top: var(--spacing-sm);
   }
-  
+
   .task-name {
     white-space: normal;
     overflow: visible;
     text-overflow: unset;
   }
-  
+
   .task-url {
     white-space: normal;
     overflow: visible;
@@ -830,7 +828,7 @@ onMounted(() => {
   .stats-section {
     grid-template-columns: 1fr;
   }
-  
+
   .task-count {
     display: none;
   }
