@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@types/wicg-file-system-access": "^2023.10.6",
     "esbuild": "^0.25.8",
     "pinia": "^3.0.3",
     "vue-i18n": "^11.1.11",

@@ -4,9 +4,9 @@
       <div class="dialog-header">
         <h3 class="dialog-title">
           <span class="title-icon">➕</span>
-          添加下载任务
+          {{ $t('download.add.title') }}
         </h3>
-        <button class="close-btn" @click="$emit('close')" title="关闭">
+        <button class="close-btn" @click="$emit('close')" :title="t('download.close')">
           ✕
         </button>
       </div>
@@ -17,14 +17,14 @@
           <div class="form-group">
             <label for="url-input" class="form-label">
               <span class="label-icon">🔗</span>
-              下载链接
+              {{ $t('download.add.url') }}
             </label>
             <input 
               id="url-input"
               v-model="url" 
               type="url"
               class="form-input"
-              placeholder="请输入 HTTP/HTTPS/FTP 链接或磁力链接"
+              :placeholder="t('download.add.urlinput')"
               required
               :class="{ 'input-error': urlError }"
               @input="validateUrl"
@@ -35,7 +35,7 @@
             </div>
             <div v-if="detectedProtocol" class="detected-info">
               <span class="info-icon">ℹ️</span>
-              检测到协议类型: {{ getProtocolName(detectedProtocol) }}
+              {{ $t('download.add.protocoltype') }} :{{ getProtocolName(detectedProtocol) }}
             </div>
           </div>
 
@@ -43,7 +43,7 @@
           <div class="form-group">
             <label for="protocol-select" class="form-label">
               <span class="label-icon">⚙️</span>
-              协议类型
+              {{ $t('download.add.protocol') }}
             </label>
             <select 
               id="protocol-select"
@@ -65,18 +65,18 @@
               @click="showAdvanced = !showAdvanced"
             >
               <span class="toggle-icon" :class="{ 'rotated': showAdvanced }">▶</span>
-              高级设置
+              {{ $t('download.add.advanced') }} 
             </button>
             
             <div v-if="showAdvanced" class="advanced-options">
               <div class="option-group">
-                <label for="save-path" class="option-label">保存位置</label>
+                <label for="save-path" class="option-label">{{ $t('download.add.savepath') }}</label>
                 <input 
                   id="save-path"
                   v-model="savePath" 
                   type="text"
                   class="form-input"
-                  placeholder="默认下载目录"
+                  :placeholder="t('download.add.savepath.default')"
                 />
               </div>
               
@@ -88,7 +88,7 @@
                     class="checkbox-input"
                   />
                   <span class="checkbox-custom"></span>
-                  自动开始下载
+                  {{ $t('download.add.autostart') }}
                 </label>
               </div>
             </div>
@@ -102,7 +102,7 @@
           class="btn-secondary" 
           @click="$emit('close')"
         >
-          取消
+          {{ $t('download.cancelbutton') }}
         </button>
         <button 
           type="button" 
@@ -120,7 +120,9 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n();
 const url = ref('')
 const protocol = ref('http')
 const savePath = ref('')

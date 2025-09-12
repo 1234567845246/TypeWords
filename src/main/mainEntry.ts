@@ -1,11 +1,11 @@
-import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme } from "electron"
+import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, dialog } from "electron"
 import { downloadManager } from './downloadManager'
-import { config } from './config'
+import { SettingData } from "../types"
+import { settings } from './settings'
 import { join } from 'path'
 import { i18n } from "./i18n";
 
 
-app.setPath('userData', join(app.getPath('appData'), 'OmniDownloader'));
 let mainWindow: BrowserWindow;
 
 const gotTheLock = app.requestSingleInstanceLock();
@@ -24,12 +24,14 @@ if (!gotTheLock) {
 
 function createWindow() {
     mainWindow = new BrowserWindow({
+        minHeight:800,
+        minWidth: 1200,
         width: 1200,
         height: 800,
         title: i18n.t('title'),
         icon: nativeImage.createFromPath(join(__dirname, '../public/icon.png')),
         webPreferences: {
-             additionalArguments: [`--window-config=${JSON.stringify(config.getConfig())}`],
+            additionalArguments: [`--window-config=${JSON.stringify(settings.getConfig())}`],
             preload: join(__dirname, 'preload.js'),
             contextIsolation: true,
             nodeIntegration: false,
@@ -41,11 +43,22 @@ function createWindow() {
     mainWindow.setMenuBarVisibility(false);
 
     nativeTheme.themeSource = 'dark'
-    
 
-    ipcMain.handle('set-theme', (_,isDark:boolean)=>{
+    ipcMain.handle('set-config', (_, cfg: SettingData) => { settings.setConfig(cfg) });
+    ipcMain.handle('get-default-config', () => { return settings.getDefaultSettings() })
+
+    ipcMain.handle('set-theme', (_, isDark: boolean) => {
         nativeTheme.themeSource = isDark ? 'dark' : 'light'
     })
+
+    ipcMain.handle('select-directory', async () => {
+        let res = await dialog.showOpenDialog(mainWindow, { properties: ['openDirectory'], defaultPath: settings.getConfig().downloadPath });
+        if (!res.canceled && res.filePaths.length !== 0) {
+            settings.setConfig({ downloadPath: res.filePaths[0] })
+            return res.filePaths[0]
+        }
+        return null;
+    });
 
     // 获取任务列表
     ipcMain.handle('download-list', () => downloadManager.getTasks())

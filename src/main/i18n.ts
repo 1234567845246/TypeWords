@@ -1,6 +1,6 @@
 import { existsSync } from "fs";
 import { join } from "path";
-import { config } from "./config";
+import { settings } from "./settings";
 
 /**
  * I18n class for handling internationalization in the application.
@@ -51,4 +51,4 @@ import { config } from "./config";
 }
 
 
-export let  i18n = new I18n(config.getConfig().language);
+export let  i18n = new I18n(settings.getConfig().language);

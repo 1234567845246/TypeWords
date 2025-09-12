@@ -1,35 +1,12 @@
 <template>
   <div class="download-manager">
-    <!-- 顶部操作栏 -->
-    <div class="manager-header">
-      <div class="header-info">
-        <h2 class="section-title">
-          <span class="title-icon">📋</span>
-          下载任务
-          <span class="task-count" v-if="tasks.length">({{ tasks.length }})</span>
-        </h2>
-        <p class="section-subtitle">管理您的所有下载任务</p>
-      </div>
-
-      <div class="header-actions">
-        <button class="btn-primary" @click="showAddDialog = true">
-          <span class="btn-icon">➕</span>
-          添加任务
-        </button>
-        <button class="btn-secondary" @click="fetchTasks" :disabled="isLoading">
-          <span class="btn-icon">🔄</span>
-          {{ isLoading ? '刷新中...' : '刷新' }}
-        </button>
-      </div>
-    </div>
-
     <!-- 任务统计 -->
     <div class="stats-section" v-if="tasks.length">
       <div class="stat-card">
         <div class="stat-icon downloading">📫</div>
         <div class="stat-info">
           <div class="stat-number">{{ downloadingCount }}</div>
-          <div class="stat-label">下载中</div>
+          <div class="stat-label">{{ $t('download.stat.downloading') }}</div>
         </div>
       </div>
 
@@ -37,7 +14,7 @@
         <div class="stat-icon completed">✓</div>
         <div class="stat-info">
           <div class="stat-number">{{ completedCount }}</div>
-          <div class="stat-label">已完成</div>
+          <div class="stat-label">{{ $t('download.stat.completed') }}</div>
         </div>
       </div>
 
@@ -45,7 +22,7 @@
         <div class="stat-icon waiting">⏸</div>
         <div class="stat-info">
           <div class="stat-number">{{ waitingCount }}</div>
-          <div class="stat-label">等待中</div>
+          <div class="stat-label">{{ $t('download.stat.waiting') }}</div>
         </div>
       </div>
 
@@ -53,7 +30,7 @@
         <div class="stat-icon paused">⏸</div>
         <div class="stat-info">
           <div class="stat-number">{{ pausedCount }}</div>
-          <div class="stat-label">已暂停</div>
+          <div class="stat-label">{{ $t('download.stat.paused') }}</div>
         </div>
       </div>
 
@@ -61,7 +38,7 @@
         <div class="stat-icon error">⚠</div>
         <div class="stat-info">
           <div class="stat-number">{{ errorCount }}</div>
-          <div class="stat-label">错误</div>
+          <div class="stat-label">{{ $t('download.stat.error') }}</div>
         </div>
       </div>
     </div>
@@ -71,11 +48,11 @@
       <!-- 空状态 -->
       <div v-if="!tasks.length && !isLoading" class="empty-state">
         <div class="empty-icon">📦</div>
-        <h3 class="empty-title">暂无下载任务</h3>
-        <p class="empty-description">点击上方“添加任务”按钮开始您的第一个下载</p>
-        <button class="btn-primary" @click="showAddDialog = true">
+        <h3 class="empty-title">{{ $t('download.task.empty.title') }}</h3>
+        <p class="empty-description">{{ $t('download.task.empty.desc') }}</p>
+        <button class="btn-primary" @click="$emit('add-task')">
           <span class="btn-icon">➕</span>
-          添加第一个任务
+          {{ $t('download.task.empty.button') }}
         </button>
       </div>
 
@@ -157,8 +134,13 @@
       </div>
     </div>
 
-    <!-- 添加任务对话框 -->
-    <AddTaskDialog v-if="showAddDialog" @add="addTask" @close="showAddDialog = false" />
+    <!-- 刷新按钮 -->
+    <div class="refresh-section" v-if="tasks.length">
+      <button class="btn-secondary refresh-btn" @click="fetchTasks" :disabled="isLoading">
+        <span class="btn-icon">🔄</span>
+        {{ isLoading ? '刷新中...' : '刷新' }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -166,12 +148,14 @@
 import { ref, onMounted, Ref, computed } from 'vue'
 import { DownloadTask } from '../../types'
 import { useI18n } from 'vue-i18n'
-import AddTaskDialog from './AddTaskDialog.vue'
 
 const { t } = useI18n()
 const tasks: Ref<DownloadTask[]> = ref([])
-const showAddDialog = ref(false)
 const isLoading = ref(false)
+
+defineEmits<{
+  (e: 'add-task'): void
+}>()
 
 // 主题管理
 const currentTheme = ref<'light' | 'dark'>('dark')
@@ -208,11 +192,6 @@ const errorCount = computed(() =>
 )
 
 
-// 下载更新监听
-window.electronAPI?.onDownloadUpdate?.((newTasks: any) => {
-  tasks.value = newTasks
-})
-
 // 获取任务列表
 async function fetchTasks() {
   isLoading.value = true
@@ -228,11 +207,6 @@ async function fetchTasks() {
   }
 }
 
-// 添加任务
-function addTask({ url, protocol }: { url: string, protocol: string }) {
-  window.electronAPI.downloadAdd(url, protocol)
-  showAddDialog.value = false
-}
 
 // 暂停任务
 function pauseTask(taskId: string) {
@@ -274,6 +248,11 @@ function formatSpeed(speed: number): string {
 onMounted(() => {
   initTheme()
   fetchTasks()
+  
+  // 下载更新监听
+  window.electronAPI.onDownloadUpdate((newTasks: any) => {
+    tasks.value = newTasks
+  })
 })
 </script>
 
@@ -281,78 +260,21 @@ onMounted(() => {
 .download-manager {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xl);
-}
-
-/* 顶部操作栏 */
-.manager-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
   gap: var(--spacing-lg);
-  padding: var(--spacing-xl);
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-color);
 }
 
-.header-info {
-  flex: 1;
-}
-
-.section-title {
+/* 刷新按钮区域 */
+.refresh-section {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  margin: 0 0 var(--spacing-xs) 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  justify-content: center;
+  padding: var(--spacing-md);
 }
 
-.title-icon {
-  font-size: 1.25rem;
+.refresh-btn {
+  min-width: 120px;
 }
 
-.task-count {
-  font-size: 0.875rem;
-  font-weight: 400;
-  color: var(--text-muted);
-  background: var(--bg-tertiary);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-sm);
-}
-
-.section-subtitle {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.875rem;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-/* 按钮样式 */
-.btn-primary {
-  background: var(--accent-primary);
-  color: white;
-  border: none;
-}
-
-.btn-secondary {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-}
-
-.btn-icon {
-  font-size: 0.875rem;
-}
-
-/* 统计卡片 */
+/* 任务统计 */
 .stats-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

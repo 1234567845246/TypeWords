@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
-import { Config } from "../types";
+import { SettingData } from "../types";
 
- function parseArgv(key: string): Config | undefined {
+ function parseArgv(key: string): SettingData | undefined {
     for (const arg of process.argv) {
         if (arg.indexOf(`--${key}=`) === 0) {
             return JSON.parse(arg.split('=')[1]);
@@ -10,8 +10,12 @@ import { Config } from "../types";
     return undefined;
 }
 export declare interface ElectronAPI {
-    getConfig: () => Config | undefined
-    setTheme: (isDark: boolean) => Promise<any>
+    getConfig: () => SettingData | undefined;
+    getdefaultConfig: () => Promise<SettingData>;
+    setConfig: (config: SettingData) => Promise<any>;
+    setTheme: (isDark: boolean) => Promise<any>;
+
+    selectDirectory:()=>Promise<string>;
 
     downloadAdd: (url: string, protocol: string) => Promise<any>;
     downloadList: () => Promise<any>;
@@ -23,9 +27,12 @@ export declare interface ElectronAPI {
 
 contextBridge.exposeInMainWorld('electronAPI', {
     getConfig: () => parseArgv('window-config'),
+    getdefaultConfig: () => ipcRenderer.invoke('get-default-config'),
+    setConfig: (config: SettingData) => ipcRenderer.invoke('set-config', config),
 
     setTheme: (isDark: boolean) => ipcRenderer.invoke('set-theme', isDark),
 
+    selectDirectory: () => ipcRenderer.invoke('select-directory'),
     downloadList: () => ipcRenderer.invoke('download-list'),
     downloadAdd: (url: string, protocol: string) => ipcRenderer.invoke('download-add', url, protocol),
     downloadPause: (taskId: string) => ipcRenderer.invoke('download-pause', taskId),

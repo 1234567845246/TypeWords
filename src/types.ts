@@ -1,10 +1,22 @@
-export interface Config {
-    theme: Theme;               //主题
-    language: Language;            //语言
-    version: string;
-    downSavePath: string;
-}
 
+export interface SettingData {
+  downloadPath: string
+  maxConcurrent: number
+  speedLimit: number
+  speedUnit: 'KB/s' | 'MB/s'
+  autoOpenTasks: boolean
+  minimizeToTray: boolean
+  showNotifications: boolean
+  theme: Theme,
+  language: Language,
+  timeout: number
+  retryCount: number
+  useProxy: boolean
+  proxyHost: string
+  proxyPort: number
+  
+  version: string
+}
 
 export type Theme = "light" | "dark" | "system"
 export type Language = "zh"  | "en"
