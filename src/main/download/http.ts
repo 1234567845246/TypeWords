@@ -1,8 +1,9 @@
 import { DownloadTask } from "../../types"
-import { createWriteStream, existsSync, statSync, unlinkSync } from 'node:fs'
-import { parse } from 'url'
-import { request as httpRequest } from "node:http"
+import { createWriteStream, existsSync, statSync, unlinkSync, renameSync } from 'node:fs'
+import { request as httpRequest, IncomingMessage } from "node:http"
 import { request as httpsRequest } from "node:https"
+import { join } from "node:path"
+import { urlToHttpOptions } from "node:url"
 
 
 interface HttpDownloadRequest {
@@ -25,14 +26,15 @@ export function downloadHttp(
   let lastTime = Date.now()
   let lastReceived = 0
 
-  const urlObj = parse(task.url)
+  const urlObj: URL = new URL(task.url)
+  // const urlObj = parse(task.url)
   const isHttps = urlObj.protocol === 'https:'
   const requestModule = isHttps ? httpsRequest : httpRequest
 
   // 获取临时文件名和最终文件名
-  const fileName = urlObj.pathname?.split('/').pop() || 'download'
-  const tempFileName = fileName + '.tmp'
-  task.fileName = fileName
+  const fileName = join(task.savePath, urlObj.pathname?.split('/').pop() || 'download')
+  const tempFileName = join(fileName + '.tmp')
+  task.fileName = tempFileName
 
   // 检查是否有已存在的临时文件（用于断点续传）
   let startByte = 0
@@ -47,11 +49,10 @@ export function downloadHttp(
 
     return new Promise<void>((resolve, reject) => {
       const options = {
-        ...urlObj,
+        ...urlToHttpOptions(urlObj as URL),
         headers: startByte > 0 ? { 'Range': `bytes=${startByte}-` } : {}
       }
-
-      currentRequest = requestModule(options, (res: any) => {
+      currentRequest = requestModule(options, (res: IncomingMessage) => {
         if (aborted) return
 
         // 检查状态码
@@ -123,7 +124,8 @@ export function downloadHttp(
                 if (existsSync(fileName)) {
                   unlinkSync(fileName)
                 }
-                require('fs').renameSync(tempFileName, fileName)
+                renameSync(tempFileName, fileName)
+                task.fileName = fileName
               }
               task.progress = 100
               resolve()

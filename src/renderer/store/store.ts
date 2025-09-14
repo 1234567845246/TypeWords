@@ -1,10 +1,10 @@
-import { Config } from "../../types";
+import {SettingData } from "../../types";
 import { ref } from "vue";
 import { defineStore } from "pinia";
 
 
 export const useconfigstore = defineStore('config',()=>{
-    const config = ref<Config>({
+    const config = ref<SettingData>({
           downloadPath: '',
           maxConcurrent: 3,
           speedLimit: 0,
@@ -22,7 +22,7 @@ export const useconfigstore = defineStore('config',()=>{
           version: '1.0.0'
     })
     async function loadconfig() {
-        config.value = await window.electronAPI.getConfig() as Config;
+        config.value = await window.electronAPI.getConfig() as SettingData;
     }
 
     return {

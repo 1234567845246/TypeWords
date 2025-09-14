@@ -14,12 +14,12 @@ export interface SettingData {
   useProxy: boolean
   proxyHost: string
   proxyPort: number
-  
+
   version: string
 }
 
 export type Theme = "light" | "dark" | "system"
-export type Language = "zh"  | "en"
+export type Language = "zh" | "en"
 
 
 
@@ -29,6 +29,7 @@ export interface DownloadTask {
   id: string;
   url: string;
   protocol: DownloadProtocol;
+  savePath: string; // 自定义保存路径
   status: 'waiting' | 'downloading' | 'paused' | 'completed' | 'error';
   progress: number; // 0-100
   speed: number;    // bytes/sec
@@ -36,4 +37,11 @@ export interface DownloadTask {
   error?: string;
   startByte?: number; // 用于断点续传
   totalSize?: number; // 文件总大小
+}
+
+export interface AddTaskOptions {
+  url: string
+  protocol: DownloadProtocol
+  savePath: string
+  autoStart: boolean
 }

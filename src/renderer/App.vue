@@ -6,21 +6,15 @@ import AddTaskDialog from './components/AddTaskDialog.vue'
 import Settings from './components/Settings.vue'
 import { useI18n } from 'vue-i18n'
 import { useconfigstore } from './store/store'
+import { AddTaskOptions } from '../types'
 
 const { t } = useI18n()
-// 添加主题切换功能
-const isDark = ref(true)
+const version = ref('1.0.0')
 
 // 当前激活的视图
 const activeView = ref<'welcome' | 'tasks' | 'settings'>('welcome')
 const showAddDialog = ref(false)
 
-// 切换主题
-const toggleTheme = () => {
-  isDark.value = !isDark.value;
-  window.electronAPI.setTheme(isDark.value);
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
-}
 
 // 切换视图
 const setActiveView = (view: 'welcome' | 'tasks' | 'settings') => {
@@ -33,8 +27,8 @@ const showAddTaskDialog = () => {
 }
 
 // 添加任务处理函数
-const handleAddTask = (task: { url: string, protocol: string }) => {
-  window.electronAPI.downloadAdd(task.url, task.protocol)
+const handleAddTask = (task: AddTaskOptions) => {
+  window.electronAPI.downloadAdd(task)
   showAddDialog.value = false
 }
 
@@ -43,23 +37,14 @@ const handleAddTaskFromList = () => {
   showAddTaskDialog()
 }
 
-// 处理主题变更
-const handleThemeChange = (theme: string) => {
-  if (theme === 'auto') {
-    const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-    isDark.value = systemTheme === 'dark'
-  } else {
-    isDark.value = theme === 'dark'
-  }
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
-  window.electronAPI?.setTheme?.(isDark.value)
+
+const handAbout = () => {
+  window.electronAPI.showAbout()
 }
-
 // 初始化主题
-onMounted(() => {
-  useconfigstore().loadconfig();
-  document.documentElement.setAttribute('data-theme', 'dark');
-
+onMounted(async () => {
+  await useconfigstore().loadconfig();
+  version.value = useconfigstore().config.version;
 })
 </script>
 
@@ -98,8 +83,8 @@ onMounted(() => {
 
       <!-- 底部区域 -->
       <div class="sidebar-footer">
-        <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到亮色主题' : '切换到暗色主题'">
-          {{ isDark ? '🌙' : '☀️' }}
+        <button class="nav-button" @click="handAbout" :title="t('download.nav.title7')">
+          {{ $t('download.nav.title7') }}
         </button>
       </div>
     </aside>
@@ -117,7 +102,7 @@ onMounted(() => {
               <div class="welcome-actions">
                 <button class="btn-primary" @click="setActiveView('tasks')">
                   <span class="btn-icon">📋</span>
-                    {{ $t('download.welcome.primary') }}
+                  {{ $t('download.welcome.primary') }}
                 </button>
                 <button class="btn-secondary" @click="showAddTaskDialog">
                   <span class="btn-icon">➕</span>
@@ -132,7 +117,7 @@ onMounted(() => {
             <div class="view-header">
               <h2 class="view-title">
                 <span class="view-icon">📋</span>
-                下载任务
+                {{ $t('download.nav.title2') }}
               </h2>
             </div>
             <DownloadList @add-task="handleAddTaskFromList" />
@@ -143,10 +128,10 @@ onMounted(() => {
             <div class="view-header">
               <h2 class="view-title">
                 <span class="view-icon">⚙️</span>
-                设置
+                {{ $t('download.nav.title5') }}
               </h2>
             </div>
-            <Settings @theme-change="handleThemeChange" />
+            <Settings :visible="activeView === 'settings'" />
           </div>
         </div>
       </main>
@@ -154,9 +139,9 @@ onMounted(() => {
       <!-- 底部状态栏 -->
       <footer class="app-footer">
         <div class="footer-content">
-          <span class="status-text">准备就绪</span>
+          <span class="status-text">{{ $t('download.footer.status') }}</span>
           <div class="footer-info">
-            <span>OmniDownloader v1.0.0</span>
+            <span>OmniDownloader v{{ version }}</span>
           </div>
         </div>
       </footer>
@@ -171,8 +156,23 @@ onMounted(() => {
 .app-container {
   display: flex;
   height: 100vh;
-  background: radial-gradient(ellipse at top left, var(--bg-secondary) 0%, var(--bg-primary) 50%, var(--bg-secondary) 100%);
+  background: var(--bg-primary);
   overflow: hidden;
+  position: relative;
+}
+
+.app-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 25% 25%, rgba(99, 102, 241, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(139, 92, 246, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 
@@ -186,13 +186,16 @@ onMounted(() => {
   }
 }
 
-/* 侧边栏样式 */
+/* 侧边栏样式 - 毛玻璃效果 */
 .sidebar {
   width: 80px;
-  background: linear-gradient(180deg, var(--bg-glass), var(--bg-card));
-  border-right: 1px solid var(--border-color);
-  backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-md), 0 1px 0 rgba(99, 102, 241, 0.1);
+  background: var(--bg-glass);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    4px 0 20px rgba(0, 0, 0, 0.1),
+    inset -1px 0 0 rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -204,6 +207,13 @@ onMounted(() => {
 
 .sidebar:hover {
   width: 200px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  border-right-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    6px 0 25px rgba(0, 0, 0, 0.15),
+    inset -1px 0 0 rgba(255, 255, 255, 0.1);
 }
 
 .sidebar:hover .logo-text,
@@ -284,8 +294,10 @@ onMounted(() => {
   width: 100%;
   min-height: 48px;
   padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--bg-hover);
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass-light);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-lg);
   color: var(--text-secondary);
   font-size: 0.875rem;
@@ -295,6 +307,9 @@ onMounted(() => {
   position: relative;
   overflow: hidden;
   cursor: pointer;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .nav-button:before {
@@ -309,18 +324,28 @@ onMounted(() => {
 }
 
 .nav-button:hover {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: rgba(99, 102, 241, 0.15);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
   color: white;
-  transform: translateX(4px);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-  border-color: var(--border-accent);
+  transform: translateX(4px) scale(1.02);
+  box-shadow:
+    0 8px 20px rgba(99, 102, 241, 0.2),
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 .nav-button.active {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: rgba(99, 102, 241, 0.2);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   color: white;
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-  border-color: var(--border-accent);
+  box-shadow:
+    0 8px 20px rgba(99, 102, 241, 0.25),
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(99, 102, 241, 0.4);
 }
 
 .nav-button.active:before {
@@ -328,14 +353,25 @@ onMounted(() => {
 }
 
 .nav-button.add-button {
-  background: linear-gradient(135deg, var(--success), #16a34a);
-  border-color: var(--success);
+  background: rgba(34, 197, 94, 0.15);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(34, 197, 94, 0.2);
   color: white;
+  box-shadow:
+    0 6px 15px rgba(34, 197, 94, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .nav-button.add-button:hover {
-  background: linear-gradient(135deg, #16a34a, #15803d);
-  box-shadow: var(--shadow-md), 0 0 20px rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.25);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  box-shadow:
+    0 10px 25px rgba(34, 197, 94, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  border-color: rgba(34, 197, 94, 0.4);
 }
 
 .nav-icon {
@@ -361,8 +397,10 @@ onMounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--bg-hover), var(--bg-card));
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass-medium);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
   font-size: 1.2rem;
   display: flex;
@@ -371,15 +409,22 @@ onMounted(() => {
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm), var(--shadow-inner);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
 }
 
 .theme-toggle:hover {
-  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  background: rgba(99, 102, 241, 0.15);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
   transform: rotate(180deg) scale(1.1);
-  box-shadow: var(--shadow-md), var(--shadow-glow);
-  border-color: var(--border-accent);
+  box-shadow:
+    0 8px 20px rgba(99, 102, 241, 0.2),
+    0 4px 10px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 /* 主内容区域 */
@@ -400,7 +445,8 @@ onMounted(() => {
 .main-content {
   flex: 1;
   padding: var(--spacing-xl);
-  min-height: 0; /* 重要：允许flex子元素缩小 */
+  min-height: 0;
+  /* 重要：允许flex子元素缩小 */
 }
 
 /* 视图内容样式 */
@@ -415,7 +461,8 @@ onMounted(() => {
   margin-bottom: var(--spacing-lg);
   padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0; /* 防止标题区域被压缩 */
+  flex-shrink: 0;
+  /* 防止标题区域被压缩 */
 }
 
 .view-title {
@@ -499,17 +546,20 @@ onMounted(() => {
   }
 }
 
-/* 底部状态栏 */
+/* 底部状态栏 - 毛玻璃效果 */
 .app-footer {
-  background: linear-gradient(135deg, var(--bg-glass), var(--bg-card));
-  border-top: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   height: 40px;
   min-height: 40px;
   max-height: 40px;
   padding: 0 var(--spacing-xl);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 -1px 0 rgba(99, 102, 241, 0.1), var(--shadow-sm);
-  flex-shrink: 0; /* 防止footer被压缩 */
+  box-shadow:
+    0 -4px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
 }

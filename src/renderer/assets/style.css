@@ -33,13 +33,16 @@
 /* 暗色主题变量 */
 :root,
 [data-theme="dark"] {
-  /* 暗黑主题颜色系统 - 增强版 */
-  --bg-primary: #0a0a15;
+  /* 暗黑主题颜色系统 - 毛玻璃增强版 */
+  --bg-primary: linear-gradient(135deg, #0a0a15 0%, #1a1a2e 50%, #0f0f1a 100%);
   --bg-secondary: #11111f;
   --bg-tertiary: #1a1a2e;
-  --bg-card: #1e1e3a;
-  --bg-hover: #252547;
-  --bg-glass: rgba(30, 30, 58, 0.8);
+  --bg-card: rgba(30, 30, 58, 0.7);
+  --bg-hover: rgba(37, 37, 71, 0.8);
+  --bg-glass: rgba(30, 30, 58, 0.6);
+  --bg-glass-light: rgba(255, 255, 255, 0.05);
+  --bg-glass-medium: rgba(255, 255, 255, 0.08);
+  --bg-glass-heavy: rgba(255, 255, 255, 0.12);
 
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
@@ -80,13 +83,16 @@
 
 /* 亮色主题变量 */
 [data-theme="light"] {
-  /* 亮色主题颜色系统 */
-  --bg-primary: #ffffff;
+  /* 亮色主题颜色系统 - 毛玻璃增强版 */
+  --bg-primary: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
-  --bg-card: #ffffff;
-  --bg-hover: #f8fafc;
-  --bg-glass: rgba(248, 250, 252, 0.8);
+  --bg-card: rgba(255, 255, 255, 0.7);
+  --bg-hover: rgba(248, 250, 252, 0.8);
+  --bg-glass: rgba(248, 250, 252, 0.6);
+  --bg-glass-light: rgba(0, 0, 0, 0.02);
+  --bg-glass-medium: rgba(0, 0, 0, 0.04);
+  --bg-glass-heavy: rgba(0, 0, 0, 0.06);
 
   --text-primary: #1e293b;
   --text-secondary: #475569;
@@ -139,6 +145,23 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
   overflow: hidden;
+  user-select: none;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 80%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 @keyframes stars {
@@ -360,13 +383,19 @@ progress::-moz-progress-bar {
   border-radius: var(--radius-sm);
 }
 
-/* 卡片样式 - 增强暗黑主题版本 */
+/* 卡片样式 - 毛玻璃增强版本 */
 .card {
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-hover));
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   padding: var(--spacing-xl);
-  box-shadow: var(--shadow-md), var(--shadow-inner);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
@@ -379,15 +408,34 @@ progress::-moz-progress-bar {
   left: 0;
   right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   opacity: 0;
   transition: opacity var(--transition-normal);
 }
 
+.card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--bg-glass-light) 0%, transparent 50%, var(--bg-glass-light) 100%);
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .card:hover {
-  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-hover);
-  transform: translateY(-4px);
-  border-color: var(--border-hover);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.15),
+    0 6px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  transform: translateY(-4px) scale(1.01);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .card:hover:before {
@@ -396,14 +444,24 @@ progress::-moz-progress-bar {
 
 /* 特殊效果卡片 */
 .card.glow {
-  box-shadow: var(--shadow-lg), var(--shadow-glow);
-  border-color: var(--border-accent);
+  background: rgba(99, 102, 241, 0.1);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  box-shadow: 
+    0 12px 40px rgba(99, 102, 241, 0.2),
+    0 6px 20px rgba(99, 102, 241, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.3);
 }
 
 .card.glass {
   background: var(--bg-glass);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 10px 35px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* 应用容器 */

@@ -21,7 +21,7 @@ import { settings } from "./settings";
     }
 
     private loadTranslations() {
-        const localePath = join(__dirname,'../public', 'locales', `${this.language}.json`);
+        const localePath = join(__dirname, 'locales', `${this.language}.json`);
         if(existsSync(localePath)){
             try{
                 this.translations = require(localePath);
@@ -40,7 +40,7 @@ import { settings } from "./settings";
         let str = this.translations[key] || key;
         if(params){
             Object.keys(params).forEach(k=>{
-                str = str.replace(new RegExp(`{${k}}`, 'g'), params[k].toString());
+                str = str.replace(new RegExp(`{{${k}}}`, 'g'), params[k].toString());
             })
         }
         return str;

@@ -1,3 +1,8 @@
 {
-    "title":"OmniDownloader"
+    "title": "OmniDownloader",
+    "about.title": "About OmniDownloader",
+    "about.message": "OmniDownloader\nVersion {{version}}\n\nA simple, fast, and reliable download manager built with Electron and Vue.js.\n\n© 2025 OmniDownloader Contributors. All rights reserved.",
+    "about.close": "Close",
+    "Restart": "A restart is required to apply the new language setting.",
+    "restart": "Restart"
 }

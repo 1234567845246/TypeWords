@@ -1,7 +1,8 @@
-import { DownloadTask, DownloadProtocol } from '../types'
+import { DownloadTask, AddTaskOptions } from '../types'
 import { EventEmitter } from 'events'
 import { downloadHttp } from './download/http'
-// 你可以类似实现 ftp/bt/magnet
+// import { downloadBt } from './download/bt'
+// 你可以类似实现 ftp/magnet
 
 export class DownloadManager extends EventEmitter {
   private tasks: DownloadTask[] = []
@@ -10,18 +11,27 @@ export class DownloadManager extends EventEmitter {
   private activeRequests: Map<string, any> = new Map() // 存储活跃的请求对象
   private progressIntervals: Map<string, NodeJS.Timeout> = new Map() // 存储进度更新定时器
 
-  addTask(url: string, protocol: DownloadProtocol) {
+  addTask({ url, protocol, savePath, autoStart }: AddTaskOptions) {
     const id = Date.now() + Math.random().toString(36).slice(2)
     const task: DownloadTask = {
-      id, url, protocol,
+      id, url, protocol, savePath,
       status: 'waiting',
       progress: 0,
       speed: 0,
       fileName: '', // 可通过url或协议解析
     }
     this.tasks.push(task)
-    this.tryStartNext()
     this.emit('update', this.tasks)
+    if (autoStart !== false) {
+      this.tryStartNext()
+    }
+  }
+  // 主动启动某个 waiting 任务
+  startTask(taskId: string) {
+    const task = this.tasks.find(t => t.id === taskId)
+    if (task && task.status === 'waiting') {
+      this.tryStartNext()
+    }
   }
 
   private tryStartNext() {
@@ -31,7 +41,7 @@ export class DownloadManager extends EventEmitter {
     next.status = 'downloading'
     this.activeCount++
     this.emit('update', this.tasks)
-    
+
     // 根据协议调用不同下载实现
     let downloadPromise: Promise<void>
     switch (next.protocol) {
@@ -41,13 +51,17 @@ export class DownloadManager extends EventEmitter {
         this.activeRequests.set(next.id, request) // 存储请求对象
         downloadPromise = request
         break
+      case 'bt' : case 'magnet':
+        // const btRequest = downloadBt(next, this.createProgressCallback(next.id))
+        // this.activeRequests.set(next.id, btRequest) // 存储请求对象
+        // downloadPromise = btRequest
+        // break
       // case 'ftp': ...
-      // case 'bt': ...
       // case 'magnet': ...
       default:
         downloadPromise = Promise.reject('协议不支持')
     }
-    
+
     downloadPromise.then(() => {
       next.status = 'completed'
       next.progress = 100

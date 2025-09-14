@@ -1,3 +1,8 @@
 {
-    "title":"全能下载器"
+    "title":"全能下载器",
+    "about.title": "关于 全能下载器",
+    "about.message": "全能下载器\n版本 {{version}}\n\n一款基于 Electron 和 Vue.js 构建的简单、快速且可靠的下载管理器。\n\n© 2025 全能下载器 贡献者。保留所有权利。",
+    "about.close": "关闭",
+    "Restart": "需要重启应用以应用新的语言设置。",
+    "restart": "重启"
 }

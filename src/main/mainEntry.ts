@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, dialog } from "electron"
+import { app, BrowserWindow, ipcMain, nativeImage, nativeTheme, dialog, shell } from "electron"
 import { downloadManager } from './downloadManager'
-import { SettingData } from "../types"
+import { AddTaskOptions, SettingData, Theme } from "../types"
 import { settings } from './settings'
 import { join } from 'path'
 import { i18n } from "./i18n";
+import { access, constants } from "fs"
 
 
 let mainWindow: BrowserWindow;
@@ -24,12 +25,12 @@ if (!gotTheLock) {
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        minHeight:800,
+        minHeight: 800,
         minWidth: 1200,
         width: 1200,
         height: 800,
         title: i18n.t('title'),
-        icon: nativeImage.createFromPath(join(__dirname, '../public/icon.png')),
+        icon: nativeImage.createFromPath(join(__dirname, './icon.png')),
         webPreferences: {
             additionalArguments: [`--window-config=${JSON.stringify(settings.getConfig())}`],
             preload: join(__dirname, 'preload.js'),
@@ -42,13 +43,35 @@ function createWindow() {
     mainWindow.loadURL(process.argv[2]);
     mainWindow.setMenuBarVisibility(false);
 
-    nativeTheme.themeSource = 'dark'
+    nativeTheme.themeSource = settings.getConfig().theme;
 
-    ipcMain.handle('set-config', (_, cfg: SettingData) => { settings.setConfig(cfg) });
+    ipcMain.handle('set-config', async (_, cfg: SettingData) => {
+
+        nativeTheme.themeSource = cfg.theme;
+
+        if (cfg.language !== settings.getConfig().language) {
+            let { response } = await dialog.showMessageBox(mainWindow,
+                {
+                    type: 'info',
+                    noLink: true,
+                    title: i18n.t('title'),
+                    message: i18n.t('Restart'),
+                    buttons: [i18n.t('restart'), i18n.t('about.close')],
+                }
+            );
+            if (response === 0) {
+                app.relaunch();
+                app.exit(0);
+            }
+        }
+        settings.setConfig(cfg)
+    });
     ipcMain.handle('get-default-config', () => { return settings.getDefaultSettings() })
 
-    ipcMain.handle('set-theme', (_, isDark: boolean) => {
-        nativeTheme.themeSource = isDark ? 'dark' : 'light'
+    ipcMain.handle('set-theme', (_, theme: Theme) => {
+        if (theme !== settings.getConfig().theme) {
+            nativeTheme.themeSource = theme;
+        }
     })
 
     ipcMain.handle('select-directory', async () => {
@@ -60,12 +83,35 @@ function createWindow() {
         return null;
     });
 
+    ipcMain.on('show-about', () => {
+        dialog.showMessageBox(mainWindow, {
+            type: 'info',
+            noLink: true,
+            title: i18n.t('title'),
+            message: i18n.t('about.title'),
+            detail: i18n.t('about.message', { version: settings.getConfig().version }),
+            buttons: [i18n.t('about.close')]
+        })
+    });
+
+    ipcMain.on('open-path', (_, path: string) => {
+        access(path, constants.F_OK, err => {
+            if (!err) {
+                shell.showItemInFolder(path);
+            }
+        })
+    });
+
     // 获取任务列表
     ipcMain.handle('download-list', () => downloadManager.getTasks())
 
     // 添加任务
-    ipcMain.handle('download-add', (_, url: string, protocol: string) => {
-        downloadManager.addTask(url, protocol as any)
+    ipcMain.handle('download-add', (_, task: AddTaskOptions) => {
+        downloadManager.addTask(task)
+    })
+    //启动任务
+    ipcMain.handle('download-start', (_, taskId: string) => {
+        downloadManager.startTask(taskId)
     })
 
     // 暂停任务

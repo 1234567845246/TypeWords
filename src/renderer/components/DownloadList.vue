@@ -117,16 +117,22 @@
           <!-- 任务操作 -->
           <div class="task-actions">
             <button v-if="task.status === 'downloading'" class="btn-action btn-pause" @click="pauseTask(task.id)"
-              title="暂停">
+              :title="t('download.pause')">
               ⏸
             </button>
 
+            <button v-if="task.status === 'waiting'" class="btn-action btn-pause" @click="startTask(task.id)"
+              :title="t('download.start')">
+              ▶️
+            </button>
             <button v-if="task.status === 'paused' || task.status === 'error'" class="btn-action btn-resume"
-              @click="resumeTask(task.id)" title="继续">
+              @click="resumeTask(task.id)" :title="t('download.resume')">
               ▶
             </button>
-
-            <button class="btn-action btn-remove" @click="removeTask(task.id)" title="删除">
+            <button v-if ="!(task.status === 'waiting' || task.status === 'error')" class="btn-action btn-open" @click="openFilePath(task.fileName)" :title="t('download.open')">
+                📂
+            </button>
+            <button class="btn-action btn-remove" @click="removeTask(task.id)" :title="t('download.delete')">
               🗑
             </button>
           </div>
@@ -206,11 +212,20 @@ async function fetchTasks() {
     isLoading.value = false
   }
 }
-
+function openFilePath(path:string){
+    if(path && path.trim().length > 0){
+        window.electronAPI.openPath(path);
+    }
+}
 
 // 暂停任务
 function pauseTask(taskId: string) {
   window.electronAPI?.downloadPause?.(taskId)
+}
+
+// 启动任务
+function startTask(taskId: string) {
+  window.electronAPI.downloadStart(taskId)
 }
 
 // 继续任务
@@ -248,7 +263,7 @@ function formatSpeed(speed: number): string {
 onMounted(() => {
   initTheme()
   fetchTasks()
-  
+
   // 下载更新监听
   window.electronAPI.onDownloadUpdate((newTasks: any) => {
     tasks.value = newTasks
@@ -286,13 +301,18 @@ onMounted(() => {
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-hover));
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm), var(--shadow-inner);
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .stat-card:before {
@@ -302,15 +322,22 @@ onMounted(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   opacity: 0;
   transition: opacity var(--transition-normal);
 }
 
 .stat-card:hover {
   transform: translateY(-4px) scale(1.02);
-  box-shadow: var(--shadow-lg), 0 0 0 1px var(--border-hover);
-  border-color: var(--border-hover);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.12),
+    0 6px 18px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .stat-card:hover:before {
@@ -367,13 +394,19 @@ onMounted(() => {
   margin-top: var(--spacing-xs);
 }
 
-/* 空状态 */
+/* 空状态 - 毛玻璃效果 */
 .empty-state {
   text-align: center;
   padding: var(--spacing-2xl);
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-lg);
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
 .empty-icon {
@@ -437,13 +470,18 @@ onMounted(() => {
   align-items: flex-start;
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-hover));
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-lg);
   transition: all var(--transition-normal);
   position: relative;
   overflow: hidden;
-  box-shadow: var(--shadow-sm), var(--shadow-inner);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.06),
+    0 3px 10px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .task-item:before {
@@ -453,34 +491,41 @@ onMounted(() => {
   left: 0;
   width: 4px;
   height: 100%;
-  background: var(--border-color);
+  background: rgba(255, 255, 255, 0.1);
   transition: all var(--transition-normal);
 }
 
 .task-item:hover {
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-md), 0 0 0 1px var(--border-hover);
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(25px) saturate(200%);
+  -webkit-backdrop-filter: blur(25px) saturate(200%);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.1),
+    0 5px 15px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
 }
 
 .task-item.task-downloading:before {
-  background: linear-gradient(180deg, var(--accent-primary), var(--accent-secondary));
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.8), rgba(139, 92, 246, 0.8));
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
 }
 
 .task-item.task-completed:before {
-  background: linear-gradient(180deg, var(--success), #16a34a);
-  box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.8), rgba(22, 163, 74, 0.8));
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.4);
 }
 
 .task-item.task-error:before {
-  background: linear-gradient(180deg, var(--error), #dc2626);
-  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.8), rgba(220, 38, 38, 0.8));
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
 }
 
 .task-item.task-paused:before {
-  background: linear-gradient(180deg, var(--warning), #d97706);
-  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.8), rgba(217, 119, 6, 0.8));
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
 }
 
 /* 任务状态图标 */
@@ -598,20 +643,26 @@ onMounted(() => {
 .progress-bar-container {
   width: 100%;
   height: 8px;
-  background: linear-gradient(90deg, var(--bg-tertiary), var(--bg-secondary));
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius-sm);
   overflow: hidden;
-  box-shadow: var(--shadow-inner);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.1),
+    0 1px 0 rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary), var(--accent-hover));
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.9), rgba(139, 92, 246, 0.9), rgba(124, 58, 237, 0.9));
   border-radius: var(--radius-sm);
   transition: width 0.5s ease;
   position: relative;
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+  box-shadow:
+    0 0 15px rgba(99, 102, 241, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
 .progress-bar::after {
@@ -695,6 +746,11 @@ onMounted(() => {
 .btn-resume:hover {
   background: var(--success);
   border-color: var(--success);
+}
+
+.btn-open:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
 }
 
 .btn-remove:hover {

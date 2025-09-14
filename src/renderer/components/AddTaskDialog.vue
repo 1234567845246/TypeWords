@@ -71,13 +71,19 @@
             <div v-if="showAdvanced" class="advanced-options">
               <div class="option-group">
                 <label for="save-path" class="option-label">{{ $t('download.add.savepath') }}</label>
-                <input 
-                  id="save-path"
-                  v-model="savePath" 
-                  type="text"
-                  class="form-input"
-                  :placeholder="t('download.add.savepath.default')"
-                />
+                <div style="display: flex; gap: 8px;">
+                  <input 
+                    id="save-path"
+                    v-model="savePath" 
+                    type="text"
+                    class="form-input"
+                    :placeholder="t('download.add.savepath.default')"
+                    style="flex: 1;"
+                  />
+                  <button type="button" class="btn-browse" @click="chooseFolder">
+                    📂
+                  </button>
+                </div>
               </div>
               
               <div class="option-group">
@@ -111,7 +117,7 @@
           :disabled="!isValidUrl"
         >
           <span class="btn-icon">➕</span>
-          添加任务
+         {{ $t('download.nav.title4') }}
         </button>
       </div>
     </div>
@@ -121,6 +127,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useconfigstore } from '../store/store';
+import { AddTaskOptions, DownloadProtocol } from '../../types';
 
 const { t } = useI18n();
 const url = ref('')
@@ -131,12 +139,7 @@ const showAdvanced = ref(false)
 const urlError = ref('')
 
 const emit = defineEmits<{
-  (e: 'add', task: { 
-    url: string
-    protocol: string
-    savePath?: string
-    autoStart: boolean
-  }): void
+  (e: 'add', task: AddTaskOptions): void
   (e: 'close'): void
 }>()
 
@@ -192,6 +195,16 @@ watch(detectedProtocol, (newProtocol) => {
   }
 })
 
+// 选择文件夹
+async function chooseFolder() {
+
+    const result = await window.electronAPI.selectDirectory()
+    if (result !== null) {
+      savePath.value = result
+    }
+  
+}
+
 // 添加任务
 function onAdd() {
   if (!isValidUrl.value) return
@@ -204,8 +217,8 @@ function onAdd() {
   
   emit('add', {
     url: url.value.trim(),
-    protocol: finalProtocol,
-    savePath: savePath.value.trim() || undefined,
+    protocol: finalProtocol as DownloadProtocol,
+    savePath: savePath.value.trim() === '' ? useconfigstore().config.downloadPath : savePath.value.trim(),
     autoStart: autoStart.value
   })
 }
@@ -219,15 +232,38 @@ function onOverlayClick(event: MouseEvent) {
 </script>
 
 <style scoped>
-/* 对话框遮罩层 */
+/* 文件夹选择按钮样式 */
+.btn-browse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 10px;
+  height: 36px;
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.btn-browse:hover {
+  background: var(--accent-primary);
+  color: #fff;
+  border-color: var(--accent-primary);
+}
+/* 对话框遮罩层 - 毛玻璃效果 */
 .dialog-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,12 +271,18 @@ function onOverlayClick(event: MouseEvent) {
   animation: fadeIn 0.2s ease;
 }
 
-/* 对话框容器 */
+/* 对话框容器 - 毛玻璃效果 */
 .dialog-container {
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-hover));
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-xl), 0 0 40px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    0 10px 30px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
   width: 90%;
   max-width: 500px;
   max-height: 80vh;
@@ -256,7 +298,7 @@ function onOverlayClick(event: MouseEvent) {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, transparent, var(--accent-primary), var(--accent-secondary), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), rgba(139, 92, 246, 0.3), transparent);
   opacity: 0.8;
 }
 
@@ -282,14 +324,16 @@ function onOverlayClick(event: MouseEvent) {
   }
 }
 
-/* 对话框头部 */
+/* 对话框头部 - 毛玻璃效果 */
 .dialog-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-lg) var(--spacing-xl);
-  border-bottom: 1px solid var(--border-color);
-  background: var(--bg-tertiary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-glass-light);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
 }
 
 .dialog-title {
@@ -311,7 +355,9 @@ function onOverlayClick(event: MouseEvent) {
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: var(--bg-hover);
+  background: var(--bg-glass-medium);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: var(--text-muted);
   font-size: 1rem;
   display: flex;
@@ -319,12 +365,20 @@ function onOverlayClick(event: MouseEvent) {
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .close-btn:hover {
-  background: var(--error);
+  background: rgba(239, 68, 68, 0.15);
+  backdrop-filter: blur(15px) saturate(150%);
+  -webkit-backdrop-filter: blur(15px) saturate(150%);
   color: white;
   transform: scale(1.1);
+  box-shadow: 
+    0 4px 12px rgba(239, 68, 68, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
 }
 
 /* 对话框主体 */
@@ -448,10 +502,15 @@ function onOverlayClick(event: MouseEvent) {
 .advanced-options {
   margin-top: var(--spacing-md);
   padding: var(--spacing-lg);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  background: var(--bg-glass-medium);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-md);
   animation: fadeIn 0.3s ease;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .option-group {
@@ -520,15 +579,17 @@ function onOverlayClick(event: MouseEvent) {
   border-color: var(--accent-primary);
 }
 
-/* 对话框底部 */
+/* 对话框底部 - 毛玻璃效果 */
 .dialog-footer {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--spacing-sm);
   padding: var(--spacing-lg) var(--spacing-xl);
-  border-top: 1px solid var(--border-color);
-  background: var(--bg-tertiary);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-glass-light);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
 }
 
 .btn-primary {
